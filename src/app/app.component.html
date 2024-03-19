@@ -9,29 +9,29 @@
     </mat-card-header>
     <mat-card-content>
       <div class="stats">
-        <mat-form-field>
+        <mat-form-field class="stats-input">
           <mat-label>Speed</mat-label>
           <input matInput maxlength="5" [(ngModel)]="horse.speed" />
         </mat-form-field>
-        <mat-form-field>
+        <mat-form-field class="stats-input">
           <mat-label>Stamina</mat-label>
           <input matInput maxlength="5" [(ngModel)]="horse.stamina" />
         </mat-form-field>
-        <mat-form-field>
+        <mat-form-field class="stats-input">
           <mat-label>Power</mat-label>
           <input matInput maxlength="5" [(ngModel)]="horse.power" />
         </mat-form-field>
-        <mat-form-field>
+        <mat-form-field class="stats-input">
           <mat-label>Guts</mat-label>
           <input matInput maxlength="5" [(ngModel)]="horse.guts" />
         </mat-form-field>
-        <mat-form-field>
+        <mat-form-field class="stats-input">
           <mat-label>Wizdom</mat-label>
           <input matInput maxlength="5" [(ngModel)]="horse.wiz" />
         </mat-form-field>
       </div>
       <div class="stats">
-        <mat-form-field>
+        <mat-form-field class="stats-input">
           <mat-label>Strategy</mat-label>
           <mat-select
             matNativeControl
@@ -43,7 +43,7 @@
             <mat-option [value]="1">Chaser</mat-option>
           </mat-select>
         </mat-form-field>
-        <mat-form-field>
+        <mat-form-field class="stats-input">
           <mat-label>Distance Proficency</mat-label>
           <mat-select matNativeControl [(ngModel)]="horse.distance">
             <mat-option [value]="8">S</mat-option>
@@ -56,7 +56,7 @@
             <mat-option [value]="1">G</mat-option>
           </mat-select>
         </mat-form-field>
-        <mat-form-field>
+        <mat-form-field class="stats-input">
           <mat-label>Surface Proficency</mat-label>
           <mat-select matNativeControl [(ngModel)]="horse.ground">
             <mat-option [value]="8">S</mat-option>
@@ -69,7 +69,7 @@
             <mat-option [value]="1">G</mat-option>
           </mat-select>
         </mat-form-field>
-        <mat-form-field>
+        <mat-form-field class="stats-input">
           <mat-label>Strategy Proficency</mat-label>
           <mat-select matNativeControl [(ngModel)]="horse.style">
             <mat-option [value]="8">S</mat-option>
@@ -82,7 +82,7 @@
             <mat-option [value]="1">G</mat-option>
           </mat-select>
         </mat-form-field>
-        <mat-form-field>
+        <mat-form-field class="stats-input">
           <mat-label>Mood</mat-label>
           <mat-select matNativeControl [(ngModel)]="horse.motivation">
             <mat-option [value]="1">Best</mat-option>
@@ -103,7 +103,7 @@
     </mat-card-header>
     <mat-card-content>
       <div class="stats">
-        <mat-form-field>
+        <mat-form-field class="stats-input">
           <mat-label>Location</mat-label>
           <mat-select
             matNativeControl
@@ -118,7 +118,7 @@
           </mat-select>
         </mat-form-field>
 
-        <mat-form-field>
+        <mat-form-field class="stats-input">
           <mat-label>Distance</mat-label>
           <mat-select
             matNativeControl
@@ -132,7 +132,7 @@
           </mat-select>
         </mat-form-field>
 
-        <mat-form-field>
+        <mat-form-field class="stats-input">
           <mat-label>Condition</mat-label>
           <mat-select matNativeControl [(ngModel)]="selectedTrack.condition">
             <mat-option [value]="0">Good</mat-option>
@@ -166,7 +166,7 @@
     <button (click)="increase()" mat-raised-button color="accent">
       <p class="increase">+</p>
     </button>
-    <mat-form-field>
+    <mat-form-field class="iterations">
       <mat-label>Iterations</mat-label>
       <input matInput maxlength="5" [(ngModel)]="iterations" />
     </mat-form-field>
@@ -186,7 +186,6 @@
     <mat-card-content>
       <div
         class="chart-container"
-        style="position: relative; height: 20rem; width: 100%"
       >
         <canvas id="chart" #chartCanvas></canvas>
       </div>
@@ -197,7 +196,7 @@
             <mat-card-title> Result </mat-card-title>
           </mat-card-header>
           <mat-card-content>
-            <table matTable>
+            <table matTable class="dynamic-font-size">
               <thead>
                 <tr>
                   <th></th>
