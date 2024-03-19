@@ -65,10 +65,23 @@ button {
     margin-top: 0em;
     padding: 2em 1.55em;
     line-height: 1.5;
-  }
+}
 
 .resultArray {
     display: flex;
     align-items: center;
     justify-content: center;
+}
+
+.links {
+    height: 15px;
+    padding: 0px;
+    padding-bottom: 1px;
+}
+
+.info {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    padding: 1rem 0rem;
 }
