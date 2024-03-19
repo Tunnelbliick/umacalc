@@ -1,0 +1,306 @@
+<mat-toolbar color="primary">
+  <span>Stamina Eater</span>
+</mat-toolbar>
+
+<div class="sim">
+  <mat-card class="honse">
+    <mat-card-header>
+      <mat-card-title> Honse </mat-card-title>
+    </mat-card-header>
+    <mat-card-content>
+      <div class="stats">
+        <mat-form-field>
+          <mat-label>Speed</mat-label>
+          <input matInput maxlength="5" [(ngModel)]="horse.speed" />
+        </mat-form-field>
+        <mat-form-field>
+          <mat-label>Stamina</mat-label>
+          <input matInput maxlength="5" [(ngModel)]="horse.stamina" />
+        </mat-form-field>
+        <mat-form-field>
+          <mat-label>Power</mat-label>
+          <input matInput maxlength="5" [(ngModel)]="horse.power" />
+        </mat-form-field>
+        <mat-form-field>
+          <mat-label>Guts</mat-label>
+          <input matInput maxlength="5" [(ngModel)]="horse.guts" />
+        </mat-form-field>
+        <mat-form-field>
+          <mat-label>Wizdom</mat-label>
+          <input matInput maxlength="5" [(ngModel)]="horse.wiz" />
+        </mat-form-field>
+      </div>
+      <div class="stats">
+        <mat-form-field>
+          <mat-label>Strategy</mat-label>
+          <mat-select
+            matNativeControl
+            [(ngModel)]="horse.current_running_style"
+          >
+            <mat-option [value]="4">Runner</mat-option>
+            <mat-option [value]="3">Leader</mat-option>
+            <mat-option [value]="2">Betweener</mat-option>
+            <mat-option [value]="1">Chaser</mat-option>
+          </mat-select>
+        </mat-form-field>
+        <mat-form-field>
+          <mat-label>Distance Proficency</mat-label>
+          <mat-select matNativeControl [(ngModel)]="horse.distance">
+            <mat-option [value]="8">S</mat-option>
+            <mat-option [value]="7">A</mat-option>
+            <mat-option [value]="6">B</mat-option>
+            <mat-option [value]="5">C</mat-option>
+            <mat-option [value]="4">D</mat-option>
+            <mat-option [value]="3">E</mat-option>
+            <mat-option [value]="2">F</mat-option>
+            <mat-option [value]="1">G</mat-option>
+          </mat-select>
+        </mat-form-field>
+        <mat-form-field>
+          <mat-label>Surface Proficency</mat-label>
+          <mat-select matNativeControl [(ngModel)]="horse.ground">
+            <mat-option [value]="8">S</mat-option>
+            <mat-option [value]="7">A</mat-option>
+            <mat-option [value]="6">B</mat-option>
+            <mat-option [value]="5">C</mat-option>
+            <mat-option [value]="4">D</mat-option>
+            <mat-option [value]="3">E</mat-option>
+            <mat-option [value]="2">F</mat-option>
+            <mat-option [value]="1">G</mat-option>
+          </mat-select>
+        </mat-form-field>
+        <mat-form-field>
+          <mat-label>Strategy Proficency</mat-label>
+          <mat-select matNativeControl [(ngModel)]="horse.style">
+            <mat-option [value]="8">S</mat-option>
+            <mat-option [value]="7">A</mat-option>
+            <mat-option [value]="6">B</mat-option>
+            <mat-option [value]="5">C</mat-option>
+            <mat-option [value]="4">D</mat-option>
+            <mat-option [value]="3">E</mat-option>
+            <mat-option [value]="2">F</mat-option>
+            <mat-option [value]="1">G</mat-option>
+          </mat-select>
+        </mat-form-field>
+        <mat-form-field>
+          <mat-label>Mood</mat-label>
+          <mat-select matNativeControl [(ngModel)]="horse.motivation">
+            <mat-option [value]="1">Best</mat-option>
+            <mat-option [value]="2">Good</mat-option>
+            <mat-option [value]="3">Normal</mat-option>
+            <mat-option [value]="4">Bad</mat-option>
+            <mat-option [value]="5">Worst</mat-option>
+            <mat-option [value]="6">Random</mat-option>
+          </mat-select>
+        </mat-form-field>
+      </div>
+    </mat-card-content>
+  </mat-card>
+
+  <mat-card class="track">
+    <mat-card-header>
+      <mat-card-title> Race Track </mat-card-title>
+    </mat-card-header>
+    <mat-card-content>
+      <div class="stats">
+        <mat-form-field>
+          <mat-label>Location</mat-label>
+          <mat-select
+            matNativeControl
+            [(ngModel)]="selectedLocation"
+            (ngModelChange)="switchLocation($event)"
+          >
+            <mat-option
+              *ngFor="let location of availableLocations"
+              [value]="location"
+              >{{ location.name }}</mat-option
+            >
+          </mat-select>
+        </mat-form-field>
+
+        <mat-form-field>
+          <mat-label>Distance</mat-label>
+          <mat-select
+            matNativeControl
+            [(ngModel)]="selectedTrack"
+            (ngModelChange)="selectTrack($event)"
+          >
+            <mat-option *ngFor="let track of availableTracks" [value]="track"
+              >{{ track.length }}m {{ track.surface == 0 ? "Turf" : "Dirt" }}
+              {{ track.inout }}</mat-option
+            >
+          </mat-select>
+        </mat-form-field>
+
+        <mat-form-field>
+          <mat-label>Condition</mat-label>
+          <mat-select matNativeControl [(ngModel)]="selectedTrack.condition">
+            <mat-option [value]="0">Good</mat-option>
+            <mat-option [value]="1">Yielding</mat-option>
+            <mat-option [value]="2">Soft</mat-option>
+            <mat-option [value]="3">Heavy</mat-option>
+            <mat-option [value]="4">Random</mat-option>
+          </mat-select>
+        </mat-form-field>
+      </div>
+    </mat-card-content>
+  </mat-card>
+
+  <mat-card class="skills">
+    <mat-card-header>
+      <mat-card-title> Skills </mat-card-title>
+    </mat-card-header>
+    <mat-card-content class="skill-placeholder">
+      <div>Skills are currently <b>Work in Progress</b>.</div>
+      <div>
+        Please check back later since theres way to many skills to implement...
+      </div>
+    </mat-card-content>
+  </mat-card>
+
+  <div class="action">
+    <button (click)="startRace()" mat-raised-button color="primary">
+      Start Simulation
+    </button>
+
+    <button (click)="increase()" mat-raised-button color="accent">
+      <p class="increase">+</p>
+    </button>
+    <mat-form-field>
+      <mat-label>Iterations</mat-label>
+      <input matInput maxlength="5" [(ngModel)]="iterations" />
+    </mat-form-field>
+    <button (click)="decrease()" mat-raised-button color="accent">
+      <p class="decrease">-</p>
+    </button>
+
+    <button (click)="startRace(1)" mat-raised-button color="warn">
+      Run Once
+    </button>
+  </div>
+
+  <mat-card class="simulation">
+    <mat-card-header>
+      <mat-card-title> Simulation </mat-card-title>
+    </mat-card-header>
+    <mat-card-content>
+      <div
+        class="chart-container"
+        style="position: relative; height: 20rem; width: 100%"
+      >
+        <canvas id="chart" #chartCanvas></canvas>
+      </div>
+
+      <div class="resultArray">
+        <mat-card *ngIf="table.length > 0">
+          <mat-card-header>
+            <mat-card-title> Result </mat-card-title>
+          </mat-card-header>
+          <mat-card-content>
+            <table matTable>
+              <thead>
+                <tr>
+                  <th></th>
+                  <th>Time</th>
+                  <th>Deviation</th>
+                  <th>Best</th>
+                  <th>Worst</th>
+                  <th>Ingame</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let row of table">
+                  <td>{{ row.title }}</td>
+                  <td>{{ row.realtime }}</td>
+                  <td>{{ row.standardDev }}</td>
+                  <td>{{ row.best }}</td>
+                  <td>{{ row.worst }}</td>
+                  <td>{{ row.raceTime }}</td>
+                </tr>
+              </tbody>
+            </table>
+          </mat-card-content>
+        </mat-card>
+      </div>
+    </mat-card-content>
+  </mat-card>
+
+  <mat-card>
+    <mat-card-content>
+      <h3>Info and Credits</h3>
+      <mat-list>
+        <mat-list-item
+          >Data on this site can be inacurate and not represent actuall ingame
+          performance.</mat-list-item
+        >
+        <mat-list-item
+          >All of the code is open source and free to be edited and adjusted by
+          anyone
+          <a
+            mat-button
+            color="primary"
+            href="https://github.com/Tunnelbliick/stamina-eater"
+            target="_blank"
+            >Github-StaminaEater</a
+          >.</mat-list-item
+        >
+        <mat-list-item
+          >Credit: This website is based on the
+          <a
+            mat-button
+            color="primary"
+            href="https://docs.google.com/document/u/0/d/15VzW9W2tXBBTibBRbZ8IVpW6HaMX8H0RP03kq6Az7Xg/mobilebasic#h.c6sx1rmt1jpe"
+            target="_blank"
+            >Uma Musume Mechanics Doc</a
+          >
+          by
+          <a
+            mat-button
+            color="primary"
+            href="https://twitter.com/umamusu_reveng"
+            target="_blank"
+            >&#64;umamusu_reveng</a
+          >
+          <a
+            mat-button
+            color="primary"
+            href="https://twitter.com/kak_eng"
+            target="_blank"
+            >&#64;kak_eng</a
+          >
+          and
+          <a
+            mat-button
+            color="primary"
+            href="https://twitter.com/hoffe_33"
+            target="_blank"
+            >&#64;hoffe_33</a
+          >
+          all credit goes to them for the reverse engineering and the
+          documentation of the game mechanics.</mat-list-item
+        >
+        <mat-list-item
+          >Inspiration: This website was inspired by the outdated
+          <a
+            mat-button
+            color="primary"
+            href="http://race.wf-calc.net/#/champions-meeting"
+            target="_blank"
+            >Race simulator</a
+          >
+          and
+          <a
+            mat-button
+            color="primary"
+            href="https://stacalc.hf-uma.net/"
+            target="_blank"
+            >Stam Calc</a
+          >
+          its meant to serve an easier alternative for English users aswell as
+          update the now outdated old Race Simulator.</mat-list-item
+        >
+      </mat-list>
+      <h3>Updates</h3>
+    </mat-card-content>
+  </mat-card>
+</div>

@@ -1,0 +1,74 @@
+.sim {
+    padding: 25px;
+}
+
+.honse {
+    margin-bottom: 1rem;
+}
+
+.track {
+    margin-bottom: 1rem;
+}
+
+.skills {
+    margin-bottom: 1rem;
+}
+
+.simulation {
+    margin-bottom: 1rem;
+}
+
+h3 {
+    font-weight: 500;
+    margin: 0px;
+}
+
+.skill-placeholder {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    align-items: center;
+    justify-content: center;
+}
+
+.increase {
+    font-size: 25px;
+}
+
+.decrease {
+    font-size: 25px;
+}
+
+
+td {
+    padding-right: 8px;
+}
+
+.stats {
+    margin-bottom: 0;
+    display: flex;
+    flex-direction: row;
+    gap: 10px;
+    flex-wrap: wrap;
+    justify-content: center;
+}
+
+.action {
+    display: flex;
+    flex-direction: row;
+    gap: 10px;
+    flex-wrap: wrap;
+    justify-content: center;
+}
+
+button {
+    margin-top: 0em;
+    padding: 2em 1.55em;
+    line-height: 1.5;
+  }
+
+.resultArray {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
