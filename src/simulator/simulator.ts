@@ -108,7 +108,7 @@ export class Simulator {
             downHillMode = slope.downHillMode;
 
             if (current_phase == 2 && ReCalc == true) {
-                spurtParams = this.calcSpurtParameters(track, horse, distanceCovered, lastSpurtSpeed, baseTargetSpeed, hpRemaining);
+                spurtParams = this.calcSpurtParameters(track, horse, distanceCovered, hpRemaining);
                 ReCalc = false;
             }
 
@@ -117,14 +117,13 @@ export class Simulator {
                 spurtStart = distanceCovered;
             }
 
-            targetSpeed = this.calcTargetSpeed(baseTargetSpeed, lastSpurtSpeed, horse, slope.slopeModifier, randomSectionSpeed, spurtParams);
+            targetSpeed = this.calcTargetSpeed(baseTargetSpeed, horse, slope.slopeModifier, randomSectionSpeed, spurtParams);
 
             if(hpRemaining < 0) {
                 outOfHp = true;
                 targetSpeed = minSpeed;
             }
 
-            lastSpurtSpeed = this.calcLastSpurtSpeed(baseTargetSpeed, this.calcBaseSpeed(track), horse);
             current_phase = this.getCurrentLeg(distanceCovered, track.phases);
             currentSlope = this.getCurrentSlope(distanceCovered, track.slopes);
 
@@ -284,7 +283,7 @@ export class Simulator {
         return 20.0 - (track.length - 2000) / 1000;
     }
 
-    calcTargetSpeed(baseTargetSpeed: number, LastSpurtSpeed: number, horse: Horse, slopeModifier: number, randomSectionSpeed: number, spurtParams: spurtParams | undefined): number {
+    calcTargetSpeed(baseTargetSpeed: number, horse: Horse, slopeModifier: number, randomSectionSpeed: number, spurtParams: spurtParams | undefined): number {
         let forceInModifier = getForceInModifier(horse);
         let skillModifier = 0;
 
@@ -297,7 +296,11 @@ export class Simulator {
         return targetSpeed;
     }
 
-    calcSpurtParameters(track: Track, horse: Horse, distanceCovered: number, lastSpurtSpeed: number, baseTargetSpeed: number, hpRemaining: number): spurtParams {
+    calcSpurtParameters(track: Track, horse: Horse, distanceCovered: number, hpRemaining: number): spurtParams {
+
+        const baseTargetSpeed = this.calcBaseTargetSpeed(horse, track, 2);
+        const lastSpurtSpeed =  this.calcLastSpurtSpeed(baseTargetSpeed, this.calcBaseSpeed(track), horse);
+
         const maxDistance = track.length - distanceCovered;
         const spurtDistance = this.calcSpurtDistance(lastSpurtSpeed, baseTargetSpeed, horse, track, distanceCovered, hpRemaining);
         const stamUsedForSpurt = this.calcRequiredHp(lastSpurtSpeed, baseTargetSpeed, horse, track, distanceCovered);
