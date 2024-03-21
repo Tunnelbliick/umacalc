@@ -5,6 +5,7 @@ import {
   Inject,
   PLATFORM_ID,
 } from '@angular/core';
+import Prando from 'prando';
 import { RouterOutlet } from '@angular/router';
 import { raceData, race_data_slice, run_simulation } from '../simulator/simulator';
 import { Horse } from '../horse/horse';
@@ -68,6 +69,7 @@ export class AppComponent {
   selectedLocation: Location = { internal: LocationEnum.Kyoto, name: "Kyoto" };
   availableTracks: Track[] = [];
   selectedTrack: Track = kyotoData[0];
+  seed: string = (Math.random() + 1).toString(36).substring(7);
 
   constructor(@Inject(PLATFORM_ID) private platformId: Object, private trackService: LoadTracksService) {
   }
@@ -127,7 +129,7 @@ export class AppComponent {
     return horse;
   }
 
-  async startRace(iter: number = this.iterations, seed: string = "test") {
+  async startRace(iter: number = this.iterations) {
 
     this.horse = this.validateHorseStats(this.horse);
     localStorage.setItem("honse", JSON.stringify(this.horse));
@@ -145,12 +147,14 @@ export class AppComponent {
     const iterations = iter; // Set your number of iterations
     const concurrencyLimit = 1; // Adjust as needed
 
+    const rng = new Prando(this.seed);
+
     const taskRunner = async (taskIndex: number) => {
       await setTimeout(() => {}, 1000);
       return run_simulation(
         this.horse,
         this.selectedTrack,
-        seed,
+        rng.nextString(5),
         taskIndex === iterations - 1
       );
     };

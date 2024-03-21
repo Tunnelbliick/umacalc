@@ -177,6 +177,11 @@
     <button (click)="startRace(1)" mat-raised-button color="warn">
       Run Once
     </button>
+
+    <mat-form-field class="iterations">
+      <mat-label>Seed</mat-label>
+      <input matInput maxlength="5" [(ngModel)]="seed" />
+    </mat-form-field>
   </div>
 
   <mat-card class="simulation">
@@ -236,7 +241,7 @@
                 <tr>
                   <td>{{ spurt.perc ? spurt.perc.toFixed(0) : "0" }}%</td>
                   <td>{{ spurt.excess ? spurt.excess.toFixed(2) : "-" }}</td>
-                  <td>{{ spurt.lacking ? spurt.lacking.toFixed(2): "-" }}</td>
+                  <td>{{ spurt.lacking ? spurt.lacking.toFixed(2) : "-" }}</td>
                 </tr>
               </tbody>
             </table>

@@ -92,7 +92,7 @@ export async function run_simulation(horseIn: Horse, trackIn: Track, seed: strin
 
     let minSpeed = calcMinSpeed(horse, track);
 
-    while (distanceCovered < track.length) {
+    while (distanceCovered <= track.length) {
 
         let currentSection = Math.floor(distanceCovered / sectionLenght);
 
@@ -145,7 +145,6 @@ export async function run_simulation(horseIn: Horse, trackIn: Track, seed: strin
             }
         }
 
-
         distanceCovered += currentSpeed / frame_count;
         currentTime += 1000 / frame_count;
 
@@ -169,11 +168,11 @@ export async function run_simulation(horseIn: Horse, trackIn: Track, seed: strin
             position: distanceCovered,
         };
 
-        if (fullPacket == true) {
-            frameData.push(current_data);
-        } else if (distanceCovered >= track.length) {
-            frameData.push(current_data);
-        }
+        frameData.push(current_data);
+    }
+
+    if(fullPacket == false) {
+        frameData = frameData.slice(-1);
     }
 
     return { slices: frameData, spurt: spurtParams, spurtStart: spurtStart };
@@ -410,7 +409,7 @@ function calcRequiredHp(lastSpurtSpeed: number, baseTargetSpeed: number, horse: 
 function calcAccel(horse: Horse, track: Track, current_phase: number, isOnSlope: boolean, isStartDash: boolean) {
     const baseAccel = isOnSlope ? 0.0004 : 0.0006
     const phaseCoefficient = accelPhaseCoefficients[horse.current_running_style][current_phase];
-    const groundTypeModifier = getGroundTypeModifier(horse, track);
+    const groundTypeModifier = getGroundTypeModifier(horse);
     const startDashModifier = isStartDash ? 24 : 0;
 
     let acell = baseAccel * Math.sqrt(500 * horse.power) * phaseCoefficient * groundTypeModifier * 1 + startDashModifier;

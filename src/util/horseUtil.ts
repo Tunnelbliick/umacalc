@@ -6,7 +6,7 @@ export function getDistanceModifier(horse: Horse,): number {
   return getModifierForProficiency(horse.distance);
 }
 
-export function getGroundTypeModifier(horse: Horse, track: Track): number {
+export function getGroundTypeModifier(horse: Horse): number {
   return getModifierForProficiency(horse.ground);
 }
 
