@@ -30,20 +30,39 @@ export interface race_data_slice {
     position: number;
 }
 
+export interface raceData {
+    slices: race_data_slice[];
+    spurt?: spurtParams;
+    spurtStart: number
+}
+
+export interface spurtParams {
+    distance: number,
+    speed: number,
+    time?: number,
+    hpDiff: number,
+    isMaxSpurt: boolean,
+    isSpurting: boolean,
+}
+
+
+const fixRng = false;
+
 export class Simulator {
 
     frame_count = 15; // Simulate race at 15fps
     static StatusModifierTurf: any;
 
-    async run_simulation(horseIn: Horse, trackIn: Track, fullPacket: boolean = false): Promise<race_data_slice[]> {
+    async run_simulation(horseIn: Horse, trackIn: Track, fullPacket: boolean = false): Promise<raceData> {
 
         let horse = structuredClone(horseIn)
         let track = structuredClone(trackIn)
 
+        const totalHp = this.calculateHP(horse, track.length);
         let frameData: race_data_slice[] = [];
         let distanceCovered: number = 0;
         let currentTime: number = 0;
-        let hpRemaining = this.calculateHP(horse, track.length);
+        let hpRemaining = totalHp;
         let currentSpeed = 3; // 3m/s is the starting speed
         let baseTargetSpeed = currentSpeed;
         let lastSpurtSpeed = currentSpeed;
@@ -54,6 +73,11 @@ export class Simulator {
         let section = 0;
         let sectionLenght = track.length / 24;
         let randomSectionSpeed = 0;
+        let deathDistance = 0;
+        let ReCalc = true;
+        let spurtParams: spurtParams | undefined = undefined;
+        let spurtStart = track.length;
+        let outOfHp = false;
 
         let motivation: Motivation = horse.motivation;
 
@@ -62,11 +86,13 @@ export class Simulator {
             motivation = Math.floor(Math.random() * 5) + 1;
         }
 
-        horse.speed = horse.speed * MotivationCoeficient[motivation]; // TODO add additional multipliers
-        horse.stamina = horse.stamina * MotivationCoeficient[motivation];
-        horse.power = horse.power * MotivationCoeficient[motivation] + 0;
-        horse.guts = horse.guts * MotivationCoeficient[motivation];
-        horse.wiz = horse.wiz * MotivationCoeficient[motivation] * 1.0;
+        horse.speed = this.adjustAttribute(horse.speed, MotivationCoeficient[motivation]); // TODO add additional multipliers
+        horse.stamina = this.adjustAttribute(horse.stamina, MotivationCoeficient[motivation]);
+        horse.power = this.adjustAttribute(horse.power, MotivationCoeficient[motivation]) + 0;
+        horse.guts = this.adjustAttribute(horse.guts, MotivationCoeficient[motivation]);
+        horse.wiz = this.adjustAttribute(horse.wiz, MotivationCoeficient[motivation]) * 1.0;
+
+        let minSpeed = this.calcMinSpeed(horse, track);
 
         while (distanceCovered < track.length) {
 
@@ -80,7 +106,24 @@ export class Simulator {
             baseTargetSpeed = this.calcBaseTargetSpeed(horse, track, current_phase);
             let slope = this.checkCurrentSlopeModifier(horse, frameData.length, currentSlope, downHillMode);
             downHillMode = slope.downHillMode;
-            targetSpeed = this.calcTargetSpeed(baseTargetSpeed, lastSpurtSpeed, horse, current_phase, slope.slopeModifier, randomSectionSpeed);
+
+            if (current_phase == 2 && ReCalc == true) {
+                spurtParams = this.calcSpurtParameters(track, horse, distanceCovered, lastSpurtSpeed, baseTargetSpeed, hpRemaining);
+                ReCalc = false;
+            }
+
+            if(spurtParams != undefined && spurtParams.isSpurting == false) {
+                spurtParams.isSpurting = spurtParams != undefined && distanceCovered + spurtParams.distance >= track.length;
+                spurtStart = distanceCovered;
+            }
+
+            targetSpeed = this.calcTargetSpeed(baseTargetSpeed, lastSpurtSpeed, horse, slope.slopeModifier, randomSectionSpeed, spurtParams);
+
+            if(hpRemaining < 0) {
+                outOfHp = true;
+                targetSpeed = minSpeed;
+            }
+
             lastSpurtSpeed = this.calcLastSpurtSpeed(baseTargetSpeed, this.calcBaseSpeed(track), horse);
             current_phase = this.getCurrentLeg(distanceCovered, track.phases);
             currentSlope = this.getCurrentSlope(distanceCovered, track.slopes);
@@ -88,9 +131,8 @@ export class Simulator {
             let isStartDash = this.checkIfStartingDash(currentSpeed, this.calcBaseSpeed(track), current_phase);
 
             let acell = this.calcAccel(horse, track, current_phase, currentSlope > 0, isStartDash);
-            let decell = this.caclDecell(current_phase, false, false);
+            let decell = this.caclDecell(current_phase, false, outOfHp);
             let speedDifference = Math.abs(currentSpeed - targetSpeed);
-
 
             if (currentSpeed <= targetSpeed) {
                 if (speedDifference > acell / this.frame_count) {
@@ -118,6 +160,10 @@ export class Simulator {
 
             hpRemaining -= hpDrain;
 
+            if (hpRemaining <= 0 && deathDistance == 0) {
+                deathDistance = distanceCovered;
+            }
+
             let current_data = {
                 frame: frameData.length + 1,
                 time: Math.round(currentTime),
@@ -133,9 +179,7 @@ export class Simulator {
             }
         }
 
-        console.log(frameData);
-
-        return frameData;
+        return {slices:frameData, spurt:spurtParams, spurtStart: spurtStart};
     }
 
     getCurrentLeg(distance: number, phases: race_phases[]): number {
@@ -200,7 +244,7 @@ export class Simulator {
     }
 
     calculateHP(horse: Horse, track_lenght: number): number {
-        return track_lenght + .8 * styleToCoefficient(horse.current_running_style) * horse.stamina;
+        return .8 * styleToCoefficient(horse.current_running_style) * horse.stamina + track_lenght;
     }
 
     calcGutsModifier(horse: Horse): number {
@@ -240,19 +284,127 @@ export class Simulator {
         return 20.0 - (track.length - 2000) / 1000;
     }
 
-    calcTargetSpeed(baseTargetSpeed: number, LastSpurtSpeed: number, horse: Horse, current_leg: PhaseEnum, slopeModifier: number, randomSectionSpeed: number): number {
+    calcTargetSpeed(baseTargetSpeed: number, LastSpurtSpeed: number, horse: Horse, slopeModifier: number, randomSectionSpeed: number, spurtParams: spurtParams | undefined): number {
         let forceInModifier = getForceInModifier(horse);
         let skillModifier = 0;
 
-        let targetSpeed = (current_leg == 2 || current_leg == 3 ? LastSpurtSpeed : baseTargetSpeed) + forceInModifier + skillModifier + slopeModifier;
+        let targetSpeed = (spurtParams != undefined && spurtParams.isSpurting ? spurtParams.speed : baseTargetSpeed) + forceInModifier + skillModifier + slopeModifier;
 
-        if (current_leg == 0 || current_leg == 1) {
+        if (spurtParams != undefined && spurtParams.isSpurting == false) {
             targetSpeed = targetSpeed + targetSpeed / 100 * randomSectionSpeed;
         }
 
         return targetSpeed;
     }
 
+    calcSpurtParameters(track: Track, horse: Horse, distanceCovered: number, lastSpurtSpeed: number, baseTargetSpeed: number, hpRemaining: number): spurtParams {
+        const maxDistance = track.length - distanceCovered;
+        const spurtDistance = this.calcSpurtDistance(lastSpurtSpeed, baseTargetSpeed, horse, track, distanceCovered, hpRemaining);
+        const stamUsedForSpurt = this.calcRequiredHp(lastSpurtSpeed, baseTargetSpeed, horse, track, distanceCovered);
+
+        if (spurtDistance >= maxDistance) {
+            return {
+                distance: maxDistance,
+                speed: lastSpurtSpeed,
+                hpDiff: hpRemaining - stamUsedForSpurt,
+                isSpurting: false,
+                isMaxSpurt: true,
+            }
+        }
+
+        const candidates: spurtParams[] = [];
+        const totalUsedMinSpeed = this.calcRequiredHp(baseTargetSpeed, baseTargetSpeed, horse, track, distanceCovered);
+        const excessHp = hpRemaining - totalUsedMinSpeed;
+
+        if (excessHp < 0) {
+            return {
+                distance: 0,
+                speed: baseTargetSpeed,
+                hpDiff: hpRemaining - stamUsedForSpurt,
+                isSpurting: false,
+                isMaxSpurt: false,
+            }
+        }
+
+        for (let speed = lastSpurtSpeed - 0.1; speed >= baseTargetSpeed; speed -= 0.1) {
+
+            let distanceForSpeed = this.calcSpurtDistance(speed, baseTargetSpeed, horse, track, distanceCovered, hpRemaining);
+            if (distanceForSpeed >= maxDistance) {
+                distanceForSpeed = maxDistance;
+            }
+
+            candidates.push({
+                distance: distanceForSpeed,
+                speed: speed,
+                time: distanceForSpeed / speed + (maxDistance - distanceForSpeed) / baseTargetSpeed,
+                hpDiff: hpRemaining - stamUsedForSpurt,
+                isSpurting: false,
+                isMaxSpurt: false,
+            })
+        }
+
+        candidates.sort((a, b) => a.time! - b.time!);
+
+        for (const canidate of candidates) {
+
+            if (fixRng) {
+                return canidate;
+            }
+
+            if (Math.random() * 100 < 15 + 0.05 * horse.wiz) {
+                return canidate;
+            }
+
+        }
+
+        return candidates[candidates.length - 1];
+
+    }
+
+    calcMinSpeed(horse: Horse, track: Track) {
+        return 0.85 * this.calcBaseSpeed(track) + Math.sqrt(200 * horse.guts) * 0.001;
+    }
+
+    calcSpurtDistance(LastSpurtSpeed: number, baseTargetSpeed: number, horse: Horse, track: Track, currentDistance: number, currentHp: number) {
+
+        // Calculates the length that can be sprinted using the remaining hp.
+        return (
+            (currentHp -
+                ((track.length - currentDistance - 60) *
+                    20 *
+                    trackToModifier(track) *
+                    this.calcGutsModifier(horse) *
+                    Math.pow(baseTargetSpeed - this.calcBaseSpeed(track) + 12, 2)) /
+                144 /
+                baseTargetSpeed) /
+            (20 *
+                trackToModifier(track) *
+                this.calcGutsModifier(horse) *
+                (Math.pow(LastSpurtSpeed - this.calcBaseSpeed(track) + 12, 2) / 144 / LastSpurtSpeed -
+                    Math.pow(baseTargetSpeed - this.calcBaseSpeed(track) + 12, 2) / 144 / baseTargetSpeed)) +
+            60
+        );
+
+    }
+
+    calcRequiredHp(lastSpurtSpeed: number, baseTargetSpeed: number, horse: Horse, track: Track, currentDistance: number) {
+
+        return (
+            ((track.length - currentDistance - 60) *
+                20 *
+                trackToModifier(track) *
+                this.calcGutsModifier(horse) *
+                Math.pow(baseTargetSpeed - this.calcBaseSpeed(track) + 12, 2)) /
+            144 /
+            baseTargetSpeed +
+            (track.length - currentDistance - 60) *
+            (20 *
+                trackToModifier(track) *
+                this.calcGutsModifier(horse) *
+                (Math.pow(lastSpurtSpeed - this.calcBaseSpeed(track) + 12, 2) / 144 / lastSpurtSpeed -
+                    Math.pow(baseTargetSpeed - this.calcBaseSpeed(track) + 12, 2) / 144 / baseTargetSpeed))
+        );
+    }
 
     calcAccel(horse: Horse, track: Track, current_phase: number, isOnSlope: boolean, isStartDash: boolean) {
         const baseAccel = isOnSlope ? 0.0004 : 0.0006
@@ -263,6 +415,25 @@ export class Simulator {
         let acell = baseAccel * Math.sqrt(500 * horse.power) * phaseCoefficient * groundTypeModifier * 1 + startDashModifier;
 
         return acell;
+    }
+
+    clamp(input: number, min: number, max: number) {
+        return Math.min(Math.max(input, min), max);
+    }
+
+    adjustAttribute(attribute: number, motivationCoefficient: number) {
+        // Step 1: Halve the attribute if it's greater than 1200
+        if (attribute > 1200) {
+            attribute = 1200 + (attribute - 1200) / 2;
+        }
+
+        // Step 2: Apply the motivation coefficient
+        attribute = attribute * motivationCoefficient;
+
+        // Step 3: Clamp the value between 1 and 2000
+        attribute = Math.max(1, Math.min(attribute, 2000));
+
+        return attribute;
     }
 
     caclDecell(leg: number, hasPaceDown: boolean, outOfHp: boolean) {

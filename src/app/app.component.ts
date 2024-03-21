@@ -6,9 +6,9 @@ import {
   PLATFORM_ID,
 } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
-import { Simulator, race_data_slice } from '../simulator/simulator';
+import { Simulator, raceData, race_data_slice } from '../simulator/simulator';
 import { Horse } from '../horse/horse';
-import { Location, LocationEnum, Track } from '../track/track';
+import { Location, LocationEnum, Track, race_phases } from '../track/track';
 import Chart from 'chart.js/auto';
 import 'chartjs-adapter-luxon';
 import { isPlatformBrowser } from '@angular/common';
@@ -24,13 +24,14 @@ import { MatSelectModule } from '@angular/material/select';
 import { CommonModule } from '@angular/common';
 import { MatListModule } from '@angular/material/list';
 import { MatTableModule } from '@angular/material/table';
+import { MatProgressSpinnerModule } from '@angular/material/progress-spinner'
 import asyncBatch from 'async-batch';
 import { DateTime } from "ts-luxon";
 
 @Component({
   selector: 'app-root',
   standalone: true,
-  imports: [CommonModule, MatListModule, MatToolbarModule, MatSelectModule, MatButtonModule, RouterOutlet, FormsModule, MatFormFieldModule, MatInputModule, MatCardModule, MatTableModule],
+  imports: [CommonModule, MatListModule, MatToolbarModule, MatSelectModule, MatButtonModule, RouterOutlet, FormsModule, MatFormFieldModule, MatInputModule, MatCardModule, MatTableModule, MatProgressSpinnerModule],
   templateUrl: './app.component.html',
   styleUrl: './app.component.css',
 })
@@ -59,7 +60,8 @@ export class AppComponent {
   };
 
   table: any[] = []
-  iterationResult: race_data_slice[] = [];
+  spurt: any[] = []
+  iterationResult: raceData[] = [];
 
   iterations = 50;
   availableLocations: Location[] = [];
@@ -129,9 +131,7 @@ export class AppComponent {
   async startRace(iter: number = this.iterations) {
 
     this.horse = this.validateHorseStats(this.horse);
-
     localStorage.setItem("honse", JSON.stringify(this.horse));
-
 
     this.iterationResult = [];
 
@@ -150,7 +150,7 @@ export class AppComponent {
         this.processSimulation(simulationResult);
       }
 
-      this.iterationResult.push(simulationResult[simulationResult.length - 1]);
+      this.iterationResult.push(simulationResult);
       return simulationResult; // return the result of each simulation
     };
 
@@ -158,10 +158,11 @@ export class AppComponent {
       const results = await asyncBatch(
         Array.from({ length: iterations }, (_, i) => i), // Array of task indices
         taskRunner, // The function to run for each task
-        5 // Concurrency limit
+        25 // Concurrency limit
       );
 
-      this.table = this.processTable(this.iterationResult);
+      console.log(this.iterationResult);
+      this.table = this.processTable(this.iterationResult[this.iterationResult.length - 1].slices, this.selectedTrack);
 
       // If needed, you can also access other results here
     } catch (err) {
@@ -169,10 +170,35 @@ export class AppComponent {
     }
   }
 
-  processTable(result: race_data_slice[]) {
+  processTable(result: race_data_slice[], track: Track) {
     // Separate the data based on the hp condition
     const maxSpurtData = result.filter(data => data.hp > 0);
     const notMaxSpurtData = result.filter(data => data.hp <= 0);
+
+    let hpAcessLenght = 0;
+    let hpAccess = 0;
+    let hpDecessLength = 0;
+    let hpDecess = 0;
+
+    const calculateHP = (dataSet: race_data_slice[]) => {
+
+      dataSet.forEach(data => {
+        if (data.hp > 0) {
+          hpAccess += data.hp
+          hpAcessLenght++;
+        } else {
+          hpDecess += data.hp
+          hpDecessLength++;
+        }
+      });
+
+      return {
+        lacking: Math.abs(hpDecess / hpDecessLength),
+        excess: Math.abs(hpAccess / hpAcessLenght),
+      };
+    };
+
+
 
     // Function to calculate the statistics for a given data set
     const calculateStats = (dataSet: race_data_slice[]) => {
@@ -216,6 +242,7 @@ export class AppComponent {
     const maxSpurtStats = calculateStats(maxSpurtData);
     const notMaxSpurtStats = calculateStats(notMaxSpurtData);
 
+
     const avg = {
       title: "Average",
       realtime: avgStats.realtime,
@@ -247,13 +274,14 @@ export class AppComponent {
   }
 
 
-  processSimulation(result: race_data_slice[]) {
+  processSimulation(result: raceData) {
 
     const chartData = this.transformDataForChart(result);
 
-    const backgroundDrawingPlugin = (distanceToTime: any, raceResult: race_data_slice[], selectedTrack: Track) => ({
+    const backgroundDrawingPlugin = (distanceToTime: any, race: raceData, selectedTrack: Track) => ({
       id: 'backgroundDrawing',
       beforeDraw(chart: Chart) {
+        const raceResult = race.slices;
         const ctx = chart.ctx;
         const xAxis = chart.scales['x'];
         const chartArea = chart.chartArea;
@@ -278,8 +306,8 @@ export class AppComponent {
           });
         };
 
-        const displaySegement = (segments: any, color: string) => {
-          segments.forEach((segment: any) => {
+        const displaySegement = (segments: race_phases[], color: string) => {
+          segments.forEach((segment: race_phases) => {
 
             if (segment.end == selectedTrack.length)
               return;
@@ -289,16 +317,107 @@ export class AppComponent {
             const width = 2;
 
             ctx.save();
+
+            // Draw the initial rectangle
             ctx.fillStyle = color;
             ctx.fillRect(startX, chartArea.top, width, chartArea.bottom - chartArea.top);
+
+            // Style for the text
+            const textColor = 'white';
+            const fontSize = 11; // Set the desired font size
+            ctx.font = `${fontSize}px Arial`;
+            ctx.fillStyle = textColor;
+            ctx.textAlign = 'center'; // Center the text horizontally
+            ctx.textBaseline = 'middle'; // Center the text vertically
+
+            // Text to be displayed
+            let text = "Middle Leg";
+
+            if (segment.type == 1) {
+              text = "Last Leg"
+            } else if (segment.type == 2) {
+              text = "Final Spurt"
+            }
+
+            // Calculate text width and height (approximate)
+            const textWidth = ctx.measureText(text).width;
+            const textHeight = fontSize * 1.2; // Approximate height
+
+            // Calculate the position and dimensions for the textbox
+            const textBoxPadding = 5; // Padding around the text
+            const textBoxWidth = textWidth + textBoxPadding * 2;
+            const textBoxHeight = textHeight + textBoxPadding * 2;
+            const textBoxX = startX + width / 2 - textBoxWidth / 2;
+            const textBoxY = chartArea.bottom - textBoxHeight;
+
+            // Draw the semi-transparent background box for the text
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.75)'; // Almost black with semi-transparency
+            ctx.fillRect(textBoxX, textBoxY, textBoxWidth, textBoxHeight);
+
+            // Draw the text centered in the textbox
+            const textX = startX + width / 2; // Center of the rect
+            const textY = chartArea.bottom - textBoxHeight / 2; // Middle of the rect
+            ctx.fillStyle = textColor;
+            ctx.fillText(text, textX, textY);
+
             ctx.restore();
+
           });
         };
+
+        const displayTrigger = (distance: number, name: string, top: boolean, color: string, offset: number) => {
+
+          if (distance == selectedTrack.length)
+            return;
+
+          const startTime = distanceToTime(distance, raceResult);
+          const startX = xAxis.getPixelForValue(startTime);
+          const width = 2;
+
+          ctx.save();
+
+          // Draw the initial rectangle
+          ctx.fillStyle = color;
+          ctx.fillRect(startX, chartArea.top, width, chartArea.bottom - chartArea.top);
+
+          // Style for the text
+          const fontSize = 11; // Set the desired font size
+          ctx.font = `${fontSize}px Arial`;
+          ctx.fillStyle = color;
+          ctx.textAlign = 'center'; // Center the text horizontally
+          ctx.textBaseline = 'middle'; // Center the text vertically
+
+          // Calculate text width and height (approximate)
+          const textWidth = ctx.measureText(name).width;
+          const textHeight = fontSize * 1.2; // Approximate height
+
+          // Calculate the position and dimensions for the textbox
+          const textBoxPadding = 5; // Padding around the text
+          const textBoxWidth = textWidth + textBoxPadding * 2;
+          const textBoxHeight = textHeight + textBoxPadding * 2;
+          const textBoxX = startX + width / 2 - textBoxWidth / 2;
+          const textBoxY = top ? chartArea.top : chartArea.bottom - textBoxHeight;
+
+          // Draw the semi-transparent background box for the text
+          ctx.fillStyle = 'rgba(0, 0, 0, 0.75)'; // Almost black with semi-transparency
+          ctx.fillRect(textBoxX, textBoxY + offset, textBoxWidth, textBoxHeight);
+
+          // Draw the text centered in the textbox
+          const textX = startX + width / 2; // Center of the rect
+          const textY = top ? chartArea.top + textBoxHeight / 2 : chartArea.bottom - textBoxHeight / 2; // Middle of the rect
+          ctx.fillStyle = color;
+          ctx.fillText(name, textX, textY + offset);
+
+          ctx.restore();
+        };
+
 
         drawArea(selectedTrack.slopes, "slope", true); // Example color for slopes
         drawArea(selectedTrack.straights, "RGBA(0, 0, 255, 0.1)", false); // Example color for straights
         drawArea(selectedTrack.corners, "RGBA(255, 0, 255, 0.1)", false); // Example color for corners
         displaySegement(selectedTrack.phases, "#000000");
+        displayTrigger(selectedTrack.other.keep.end, "Position Keep End", true, "lime", 0);
+        displayTrigger(race.spurtStart, "Final Spurt", false, "red", -25);
       }
     });
 
@@ -315,6 +434,7 @@ export class AppComponent {
       type: 'line',
       data: chartData,
       options: {
+        backgroundColor: "#303030",
         responsive: true,
         maintainAspectRatio: false,
         plugins: {
@@ -401,14 +521,13 @@ export class AppComponent {
     return raceData[raceData.length - 1].time;
   }
 
-
   // Sample function to transform data
-  transformDataForChart(raceData: race_data_slice[]) {
+  transformDataForChart(raceData: raceData) {
 
-    const timeLabels = raceData.map((slice) => slice.time);
-    const hpData = raceData.map((slice) => slice.hp);
-    const speedData = raceData.map((slice) => slice.speed);
-    const positionData = raceData.map((slice) => slice.position);
+    const timeLabels = raceData.slices.map((slice) => slice.time);
+    const hpData = raceData.slices.map((slice) => slice.hp);
+    const speedData = raceData.slices.map((slice) => slice.speed);
+    const positionData = raceData.slices.map((slice) => slice.position);
 
     return {
       labels: timeLabels,
