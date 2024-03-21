@@ -162,7 +162,7 @@ export class AppComponent {
       );
 
       console.log(this.iterationResult);
-      this.table = this.processTable(this.iterationResult[this.iterationResult.length - 1].slices, this.selectedTrack);
+      this.table = this.processTable(this.iterationResult, this.selectedTrack);
 
       // If needed, you can also access other results here
     } catch (err) {
@@ -170,41 +170,45 @@ export class AppComponent {
     }
   }
 
-  processTable(result: race_data_slice[], track: Track) {
+  processTable(result: raceData[], track: Track) {
     // Separate the data based on the hp condition
-    const maxSpurtData = result.filter(data => data.hp > 0);
-    const notMaxSpurtData = result.filter(data => data.hp <= 0);
+    const maxSpurtData = result.filter(data => data.spurt?.isMaxSpurt == true);
+    const notMaxSpurtData = result.filter(data => data.spurt?.isMaxSpurt == false);
 
     let hpAcessLenght = 0;
     let hpAccess = 0;
     let hpDecessLength = 0;
     let hpDecess = 0;
 
-    const calculateHP = (dataSet: race_data_slice[]) => {
+    const calculateHP = (dataSet: raceData[]) => {
 
-      dataSet.forEach(data => {
-        if (data.hp > 0) {
-          hpAccess += data.hp
-          hpAcessLenght++;
-        } else {
-          hpDecess += data.hp
-          hpDecessLength++;
+      dataSet.forEach(set => {
+        const data = set.spurt;
+
+        if (data != undefined) {
+          if (data.isMaxSpurt) {
+            hpAccess += data.hpDiff
+            hpAcessLenght++;
+          } else {
+            hpDecess += data.hpDiff
+            hpDecessLength++;
+          }
         }
       });
 
       return {
         lacking: Math.abs(hpDecess / hpDecessLength),
         excess: Math.abs(hpAccess / hpAcessLenght),
+        perc: 100 / dataSet.length * hpAcessLenght
       };
     };
 
-
-
     // Function to calculate the statistics for a given data set
-    const calculateStats = (dataSet: race_data_slice[]) => {
+    const calculateStats = (dataSet: raceData[]) => {
       let totalTime = 0, minTime = Infinity, maxTime = 0;
 
-      dataSet.forEach(data => {
+      dataSet.forEach(set => {
+        const data = set.slices[set.slices.length - 1];
         totalTime += data.time;
         minTime = Math.min(minTime, data.time);
         maxTime = Math.max(maxTime, data.time);
@@ -213,7 +217,8 @@ export class AppComponent {
       const avgTime = totalTime / dataSet.length;
 
       let stdDevTime = 0;
-      dataSet.forEach(data => {
+      dataSet.forEach(set => {
+        const data = set.slices[set.slices.length - 1];
         stdDevTime += Math.pow(data.time - avgTime, 2);
       });
 
@@ -238,6 +243,7 @@ export class AppComponent {
     };
 
     // Calculate stats for MaxSpurt and Not Max Spurt
+    const hp = calculateHP(result);
     const avgStats = calculateStats(result);
     const maxSpurtStats = calculateStats(maxSpurtData);
     const notMaxSpurtStats = calculateStats(notMaxSpurtData);
@@ -270,6 +276,8 @@ export class AppComponent {
       raceTime: notMaxSpurtStats.raceTime,
     }
 
+    console.log(hp);
+
     return [avg, maxSpurt, noSpurt];
   }
 
@@ -280,7 +288,7 @@ export class AppComponent {
 
     const backgroundDrawingPlugin = (distanceToTime: any, race: raceData, selectedTrack: Track) => ({
       id: 'backgroundDrawing',
-      beforeDraw(chart: Chart) {
+      afterDraw(chart: Chart) {
         const raceResult = race.slices;
         const ctx = chart.ctx;
         const xAxis = chart.scales['x'];

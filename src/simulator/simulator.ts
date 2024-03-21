@@ -114,7 +114,7 @@ export class Simulator {
 
             if(spurtParams != undefined && spurtParams.isSpurting == false) {
                 spurtParams.isSpurting = spurtParams != undefined && distanceCovered + spurtParams.distance >= track.length;
-                spurtStart = distanceCovered;
+                spurtStart = spurtParams.distance == 0 ? track.length : distanceCovered;
             }
 
             targetSpeed = this.calcTargetSpeed(baseTargetSpeed, horse, slope.slopeModifier, randomSectionSpeed, spurtParams);
