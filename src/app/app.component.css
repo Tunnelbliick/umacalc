@@ -98,9 +98,10 @@ button {
 }
 
 .resultArray {
+    padding-top: 1rem;
     display: flex;
-    align-items: center;
     justify-content: center;
+    gap: 1rem;
 }
 
 .links {
@@ -122,4 +123,12 @@ button {
 
 .iterations {
     width: 150px;
+}
+
+th {
+    padding-right: 1rem;
+}
+
+.divider {
+    margin-top: 1rem;
 }

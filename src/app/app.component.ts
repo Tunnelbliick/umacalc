@@ -6,7 +6,7 @@ import {
   PLATFORM_ID,
 } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
-import { Simulator, raceData, race_data_slice } from '../simulator/simulator';
+import { raceData, race_data_slice, run_simulation } from '../simulator/simulator';
 import { Horse } from '../horse/horse';
 import { Location, LocationEnum, Track, race_phases } from '../track/track';
 import Chart from 'chart.js/auto';
@@ -25,13 +25,14 @@ import { CommonModule } from '@angular/common';
 import { MatListModule } from '@angular/material/list';
 import { MatTableModule } from '@angular/material/table';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner'
+import { MatDividerModule } from '@angular/material/divider';
 import asyncBatch from 'async-batch';
 import { DateTime } from "ts-luxon";
 
 @Component({
   selector: 'app-root',
   standalone: true,
-  imports: [CommonModule, MatListModule, MatToolbarModule, MatSelectModule, MatButtonModule, RouterOutlet, FormsModule, MatFormFieldModule, MatInputModule, MatCardModule, MatTableModule, MatProgressSpinnerModule],
+  imports: [CommonModule, MatListModule, MatToolbarModule, MatSelectModule, MatButtonModule, RouterOutlet, FormsModule, MatFormFieldModule, MatInputModule, MatCardModule, MatTableModule, MatProgressSpinnerModule, MatDividerModule],
   templateUrl: './app.component.html',
   styleUrl: './app.component.css',
 })
@@ -39,7 +40,6 @@ export class AppComponent {
   @ViewChild('chartCanvas') chartCanvas!: ElementRef;
 
   title = 'stamina-eater';
-  simulator: Simulator;
   raceResult: any;
   simulation: Chart | undefined = undefined;
   horse: Horse = {
@@ -59,8 +59,8 @@ export class AppComponent {
     skills: [],
   };
 
-  table: any[] = []
-  spurt: any[] = []
+  time: any[] = []
+  spurt: any;
   iterationResult: raceData[] = [];
 
   iterations = 50;
@@ -70,7 +70,6 @@ export class AppComponent {
   selectedTrack: Track = kyotoData[0];
 
   constructor(@Inject(PLATFORM_ID) private platformId: Object, private trackService: LoadTracksService) {
-    this.simulator = new Simulator();
   }
 
   ngOnInit() {
@@ -128,7 +127,7 @@ export class AppComponent {
     return horse;
   }
 
-  async startRace(iter: number = this.iterations) {
+  async startRace(iter: number = this.iterations, seed: string = "test") {
 
     this.horse = this.validateHorseStats(this.horse);
     localStorage.setItem("honse", JSON.stringify(this.horse));
@@ -144,64 +143,85 @@ export class AppComponent {
     }
 
     const iterations = iter; // Set your number of iterations
-    const taskRunner = async (taskIndex: number) => {
-      const simulationResult = await this.simulator.run_simulation(this.horse, this.selectedTrack, taskIndex === iterations - 1 ? true : false);
-      if (taskIndex === iterations - 1) {
-        this.processSimulation(simulationResult);
-      }
+    const concurrencyLimit = 1; // Adjust as needed
 
-      this.iterationResult.push(simulationResult);
-      return simulationResult; // return the result of each simulation
+    const taskRunner = async (taskIndex: number) => {
+      await setTimeout(() => {}, 1000);
+      return run_simulation(
+        this.horse,
+        this.selectedTrack,
+        seed,
+        taskIndex === iterations - 1
+      );
     };
 
-    try {
-      const results = await asyncBatch(
-        Array.from({ length: iterations }, (_, i) => i), // Array of task indices
-        taskRunner, // The function to run for each task
-        25 // Concurrency limit
-      );
+    const runSimulations = async () => {
+      const tasks = [];
+      const allResults = []; // Array to store all the results
 
-      console.log(this.iterationResult);
-      this.table = this.processTable(this.iterationResult, this.selectedTrack);
+      for (let i = 0; i < iterations; i++) {
+        tasks.push(taskRunner(i));
 
-      // If needed, you can also access other results here
-    } catch (err) {
-      console.error("An error occurred during the simulations", err);
-    }
+        // When the number of concurrent tasks reaches the limit or the last iteration is reached
+        if (tasks.length === concurrencyLimit || i === iterations - 1) {
+          const results = await Promise.allSettled(tasks.splice(0, tasks.length));
+
+          // Extract and store results
+          for (const result of results) {
+            if (result.status === 'fulfilled') {
+              allResults.push(result.value);
+            } else {
+              // Handle or record the rejected promise if needed
+              // For example, you might push an error message or a null value
+              allResults.push();
+            }
+          }
+        }
+      }
+      return allResults;
+    };
+
+
+    const simulations = await runSimulations();
+    this.time = this.processTime(simulations);
+    this.spurt = this.processSpurt(simulations);
+    this.processSimulation(simulations[simulations.length - 1]);
   }
 
-  processTable(result: raceData[], track: Track) {
-    // Separate the data based on the hp condition
-    const maxSpurtData = result.filter(data => data.spurt?.isMaxSpurt == true);
-    const notMaxSpurtData = result.filter(data => data.spurt?.isMaxSpurt == false);
+  processSpurt(result: raceData[]) {
 
     let hpAcessLenght = 0;
     let hpAccess = 0;
     let hpDecessLength = 0;
     let hpDecess = 0;
 
-    const calculateHP = (dataSet: raceData[]) => {
+    result.forEach(set => {
 
-      dataSet.forEach(set => {
-        const data = set.spurt;
+      const data = set.spurt;
 
-        if (data != undefined) {
-          if (data.isMaxSpurt) {
-            hpAccess += data.hpDiff
-            hpAcessLenght++;
-          } else {
-            hpDecess += data.hpDiff
-            hpDecessLength++;
-          }
+      if (data != undefined) {
+        if (data.isMaxSpurt) {
+          hpAccess += data.hpDiff
+          hpAcessLenght++;
+        } else {
+          hpDecess += data.hpDiff
+          hpDecessLength++;
         }
-      });
+      }
+    });
 
-      return {
-        lacking: Math.abs(hpDecess / hpDecessLength),
-        excess: Math.abs(hpAccess / hpAcessLenght),
-        perc: 100 / dataSet.length * hpAcessLenght
-      };
+    return {
+      lacking: Math.abs(hpDecess / hpDecessLength),
+      excess: Math.abs(hpAccess / hpAcessLenght),
+      perc: 100 / result.length * hpAcessLenght
     };
+
+  }
+
+  processTime(result: raceData[]) {
+    // Separate the data based on the hp condition
+    const maxSpurtData = result.filter(data => data.spurt?.isMaxSpurt == true);
+    const notMaxSpurtData = result.filter(data => data.spurt?.isMaxSpurt == false);
 
     // Function to calculate the statistics for a given data set
     const calculateStats = (dataSet: raceData[]) => {
@@ -243,7 +263,6 @@ export class AppComponent {
     };
 
     // Calculate stats for MaxSpurt and Not Max Spurt
-    const hp = calculateHP(result);
     const avgStats = calculateStats(result);
     const maxSpurtStats = calculateStats(maxSpurtData);
     const notMaxSpurtStats = calculateStats(notMaxSpurtData);
@@ -275,8 +294,6 @@ export class AppComponent {
       worst: notMaxSpurtStats.worst,
       raceTime: notMaxSpurtStats.raceTime,
     }
-
-    console.log(hp);
 
     return [avg, maxSpurt, noSpurt];
   }

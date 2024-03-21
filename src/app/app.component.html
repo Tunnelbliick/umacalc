@@ -187,9 +187,9 @@
       <div class="chart-container">
         <canvas id="chart" #chartCanvas></canvas>
       </div>
-
+      <mat-divider class="divider" *ngIf="spurt != undefined"></mat-divider>
       <div class="resultArray">
-        <mat-card *ngIf="table.length > 0">
+        <mat-card *ngIf="time.length > 0">
           <mat-card-header>
             <mat-card-title> Result </mat-card-title>
           </mat-card-header>
@@ -206,13 +206,37 @@
                 </tr>
               </thead>
               <tbody>
-                <tr *ngFor="let row of table">
+                <tr *ngFor="let row of time">
                   <td>{{ row.title }}</td>
                   <td>{{ row.realtime }}</td>
                   <td>{{ row.standardDev }}</td>
                   <td>{{ row.best }}</td>
                   <td>{{ row.worst }}</td>
                   <td>{{ row.raceTime }}</td>
+                </tr>
+              </tbody>
+            </table>
+          </mat-card-content>
+        </mat-card>
+
+        <mat-card *ngIf="spurt != undefined">
+          <mat-card-header>
+            <mat-card-title> Spurt Rate </mat-card-title>
+          </mat-card-header>
+          <mat-card-content>
+            <table matTable class="dynamic-font-size">
+              <thead>
+                <tr>
+                  <th>Max Spurt Rate</th>
+                  <th>Excess Avg.</th>
+                  <th>Lacking Avg.</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>{{ spurt.perc ? spurt.perc.toFixed(0) : "0" }}%</td>
+                  <td>{{ spurt.excess ? spurt.excess.toFixed(2) : "-" }}</td>
+                  <td>{{ spurt.lacking ? spurt.lacking.toFixed(2): "-" }}</td>
                 </tr>
               </tbody>
             </table>
