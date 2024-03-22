@@ -9,7 +9,7 @@ import Prando from 'prando';
 import { RouterOutlet } from '@angular/router';
 import { raceData, race_data_slice, run_simulation } from '../simulator/simulator';
 import { Horse } from '../horse/horse';
-import { Location, LocationEnum, Track, race_phases } from '../track/track';
+import { Location, LocationEnum, PhaseEnum, Track, race_phases } from '../track/track';
 import Chart from 'chart.js/auto';
 import 'chartjs-adapter-luxon';
 import { isPlatformBrowser } from '@angular/common';
@@ -27,8 +27,8 @@ import { MatListModule } from '@angular/material/list';
 import { MatTableModule } from '@angular/material/table';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner'
 import { MatDividerModule } from '@angular/material/divider';
-import asyncBatch from 'async-batch';
 import { DateTime } from "ts-luxon";
+import { encodeSettings } from '../util/encode';
 
 @Component({
   selector: 'app-root',
@@ -40,6 +40,7 @@ import { DateTime } from "ts-luxon";
 export class AppComponent {
   @ViewChild('chartCanvas') chartCanvas!: ElementRef;
 
+  Math = Math;
   title = 'stamina-eater';
   raceResult: any;
   simulation: Chart | undefined = undefined;
@@ -69,6 +70,7 @@ export class AppComponent {
   selectedLocation: Location = { internal: LocationEnum.Kyoto, name: "Kyoto" };
   availableTracks: Track[] = [];
   selectedTrack: Track = kyotoData[0];
+  simulatedTrack: Track = kyotoData[0];
   seed: string = (Math.random() + 1).toString(36).substring(7);
 
   constructor(@Inject(PLATFORM_ID) private platformId: Object, private trackService: LoadTracksService) {
@@ -129,12 +131,28 @@ export class AppComponent {
     return horse;
   }
 
+  phaseToString(phase: PhaseEnum) {
+    switch(phase) {
+      case 0:
+        return "Opening"
+      case 1:
+        return "Middle"
+      case 2:
+        return "Last"
+      case 3:
+        return "Final"
+      default:
+        return "Opening"
+    }
+  }
+
   async startRace(iter: number = this.iterations) {
 
     this.horse = this.validateHorseStats(this.horse);
     localStorage.setItem("honse", JSON.stringify(this.horse));
 
     this.iterationResult = [];
+    this.simulatedTrack = this.selectedTrack;
 
     if (this.selectedTrack == undefined) {
       throw ("no track found");
@@ -150,7 +168,7 @@ export class AppComponent {
     const rng = new Prando(this.seed);
 
     const taskRunner = async (taskIndex: number) => {
-      await setTimeout(() => {}, 1000);
+      await setTimeout(() => { }, 1000);
       return run_simulation(
         this.horse,
         this.selectedTrack,
@@ -190,6 +208,7 @@ export class AppComponent {
     this.time = this.processTime(simulations);
     this.spurt = this.processSpurt(simulations);
     this.processSimulation(simulations[simulations.length - 1]);
+    encodeSettings(this.horse, this.selectedLocation, this.selectedTrack, this.seed);
   }
 
   processSpurt(result: raceData[]) {

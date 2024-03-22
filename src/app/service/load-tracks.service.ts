@@ -11,6 +11,13 @@ import { sapporoData } from './track_data/sapporo';
 })
 export class LoadTracksService {
 
+  static LocationArray = [
+    { name: "Kyoto", internal: LocationEnum.Kyoto },
+    { name: "Hakodate", internal: LocationEnum.Hakodate },
+    { name: "Niigata", internal: LocationEnum.Niigata },
+    { name: "Sapporo", internal: LocationEnum.Sapporo },
+  ]
+
   constructor() { }
 
   public getTrackData(track: string, index: number): Track | undefined {
@@ -27,17 +34,20 @@ export class LoadTracksService {
   }
 
   public getSelect(): Location[] {
-    return [
-      { name: "Kyoto", internal: LocationEnum.Kyoto },
-      { name: "Hakodate", internal: LocationEnum.Hakodate },
-      { name: "Niigata", internal: LocationEnum.Niigata },
-      { name: "Sapporo", internal: LocationEnum.Sapporo },
-    ];
+    return LoadTracksService.LocationArray;
+  }
+
+  public findLocationByEnum(location: LocationEnum) {
+
+    const foundLocation = LoadTracksService.LocationArray.find(l => l.internal == location);
+
+    return foundLocation ? foundLocation : LoadTracksService.LocationArray[0];
+
   }
 
   public getLocationData(location: LocationEnum): Track[] {
 
-    switch(location) {
+    switch (location) {
       case LocationEnum.Kyoto:
         return kyotoData;
       case LocationEnum.Hakodate:
@@ -47,9 +57,9 @@ export class LoadTracksService {
       case LocationEnum.Sapporo:
         return sapporoData;
       default:
-          return kyotoData;
+        return kyotoData;
     }
-    
+
   }
 
 }

@@ -195,56 +195,118 @@
       <mat-divider class="divider" *ngIf="spurt != undefined"></mat-divider>
       <div class="resultArray">
         <mat-card *ngIf="time.length > 0">
-          <mat-card-header>
-            <mat-card-title> Result </mat-card-title>
-          </mat-card-header>
           <mat-card-content>
-            <table matTable class="dynamic-font-size">
-              <thead>
-                <tr>
-                  <th></th>
-                  <th>Time</th>
-                  <th>Deviation</th>
-                  <th>Best</th>
-                  <th>Worst</th>
-                  <th>Ingame</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr *ngFor="let row of time">
-                  <td>{{ row.title }}</td>
-                  <td>{{ row.realtime }}</td>
-                  <td>{{ row.standardDev }}</td>
-                  <td>{{ row.best }}</td>
-                  <td>{{ row.worst }}</td>
-                  <td>{{ row.raceTime }}</td>
-                </tr>
-              </tbody>
-            </table>
+            <div class="headers">
+              <h3>Result</h3>
+            </div>
+            <div>
+              <table matTable class="dynamic-font-size">
+                <thead>
+                  <tr>
+                    <th>Title</th>
+                    <th>Time</th>
+                    <th>Deviation</th>
+                    <th>Best</th>
+                    <th>Worst</th>
+                    <th>Ingame</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr *ngFor="let row of time">
+                    <td>{{ row.title }}</td>
+                    <td>{{ row.realtime }}</td>
+                    <td>{{ row.standardDev }}</td>
+                    <td>{{ row.best }}</td>
+                    <td>{{ row.worst }}</td>
+                    <td>{{ row.raceTime }}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <mat-divider class="spurt-divider" *ngIf="spurt != undefined"></mat-divider>
+            <div class="headers">
+              <h3>Spurt Rate</h3>
+            </div>
+            <div>
+              <table
+                matTable
+                class="dynamic-font-size spurt"
+                *ngIf="spurt != undefined"
+              >
+                <thead>
+                  <tr>
+                    <th>Max Spurt Rate</th>
+                    <th>Excess Avg. HP</th>
+                    <th>Lacking Avg. HP</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td>{{ spurt.perc ? spurt.perc.toFixed(0) : "0" }}%</td>
+                    <td>{{ spurt.excess ? spurt.excess.toFixed(2) : "-" }}</td>
+                    <td>
+                      {{ spurt.lacking ? spurt.lacking.toFixed(2) : "-" }}
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
           </mat-card-content>
         </mat-card>
 
-        <mat-card *ngIf="spurt != undefined">
+        <mat-card *ngIf="simulatedTrack != undefined && time.length > 0">
           <mat-card-header>
-            <mat-card-title> Spurt Rate </mat-card-title>
+            <mat-card-title> Track Information </mat-card-title>
           </mat-card-header>
           <mat-card-content>
-            <table matTable class="dynamic-font-size">
-              <thead>
-                <tr>
-                  <th>Max Spurt Rate</th>
-                  <th>Excess Avg.</th>
-                  <th>Lacking Avg.</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr>
-                  <td>{{ spurt.perc ? spurt.perc.toFixed(0) : "0" }}%</td>
-                  <td>{{ spurt.excess ? spurt.excess.toFixed(2) : "-" }}</td>
-                  <td>{{ spurt.lacking ? spurt.lacking.toFixed(2) : "-" }}</td>
-                </tr>
-              </tbody>
-            </table>
+            <div class="slopes dynamic-font-size">
+              <div class="info-header">Slopes</div>
+              <div
+                *ngFor="let slope of simulatedTrack.slopes"
+                [style.background-color]="
+                  slope.elevation > 0
+                    ? 'RGBA(255, 255, 0, 0.1)'
+                    : 'RGBA(0, 255, 0, 0.1)'
+                "
+                class="slope"
+              >
+                {{ slope.start }}m&#12316;{{ slope.end }}m ({{
+                  slope.elevation > 0 ? "&uarr;" : "&darr;"
+                }}{{ Math.abs(slope.elevation) }})
+              </div>
+            </div>
+            <div class="slopes dynamic-font-size">
+              <div class="info-header">Corners</div>
+              <div *ngFor="let corner of simulatedTrack.corners" class="corner">
+                {{ corner.start }}m&#12316;{{ corner.end }}m
+              </div>
+            </div>
+            <div class="slopes dynamic-font-size">
+              <div class="info-header">Straights</div>
+              <div
+                *ngFor="let straight of simulatedTrack.straights"
+                class="straight"
+              >
+                {{ straight.start }}m&#12316;{{ straight.end }}m
+              </div>
+            </div>
+            <div class="slopes dynamic-font-size">
+              <div class="info-header">Phases</div>
+              <div *ngFor="let phase of simulatedTrack.phases" class="slope">
+                {{ phaseToString(phase.type) }}&rarr;{{ phase.end }}m
+              </div>
+            </div>
+            <div *ngIf="simulatedTrack.other.threshold.length > 0">
+              <div class="slopes dynamic-font-size">
+                <div class="info-header">Threshold</div>
+                <div
+                  *ngFor="let threshold of simulatedTrack.other.threshold"
+                  class="slope"
+                >
+                  {{ threshold }}
+                </div>
+              </div>
+            </div>
           </mat-card-content>
         </mat-card>
       </div>
@@ -290,7 +352,7 @@
             target="_blank"
             >&#64;umamusu_reveng</a
           >
-          <a
+          &nbsp;<a
             class="links"
             mat-button
             color="primary"

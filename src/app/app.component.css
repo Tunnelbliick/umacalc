@@ -58,7 +58,8 @@ td {
 @media (min-width: 650px) {
     .dynamic-font-size {
         /* Define font size for widths larger than 500px */
-        font-size: 1rem; /* Example: setting to a fixed size */
+        font-size: 1rem;
+        /* Example: setting to a fixed size */
     }
 }
 
@@ -99,6 +100,7 @@ button {
 
 .resultArray {
     padding-top: 1rem;
+    flex-wrap: wrap;
     display: flex;
     justify-content: center;
     gap: 1rem;
@@ -127,8 +129,57 @@ button {
 
 th {
     padding-right: 1rem;
+    text-align: left;
+}
+
+.headers {
+    padding-top: 0.2rem;
+    padding-bottom: .2rem;
+    padding-left: 3px;
 }
 
 .divider {
     margin-top: 1rem;
+}
+
+.spurt-divider {
+    margin: 5px 0px;
+}
+
+.slope {
+    border: solid 2px;
+    border-radius: 5px;
+    padding: 0px 3px;
+    line-height: 1.5;
+}
+
+.corner {
+    border: solid 2px;
+    border-radius: 5px;
+    padding: 0px 3px;
+    line-height: 1.5;
+    background-color: RGBA(255, 0, 255, 0.1)
+}
+
+.straight {
+    border: solid 2px;
+    border-radius: 5px;
+    padding: 0px 3px;
+    line-height: 1.5;
+    background-color: RGBA(0, 0, 255, 0.1)
+}
+
+.slopes {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .3rem;
+    margin-bottom: 4px;
+    align-items: center;
+}
+
+.info-header {
+    min-width: 72px;
+    text-align: left;
+    vertical-align: middle;
+    display: inline;
 }
