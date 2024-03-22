@@ -29,7 +29,6 @@ export enum LocationEnum {
   "Funabashi" = 12,
   "Morioka" = 13,
   "Longchamp" = 14,
-  Moogata
 }
 
 export interface Location {
